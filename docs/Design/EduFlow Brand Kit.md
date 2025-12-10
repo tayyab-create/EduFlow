@@ -749,6 +749,7 @@ colors: {
 ```css
 :root {
   --role-super-admin: #9C27B0;    /* Purple */
+  --role-org-admin: #673AB7;      /* Deep Purple (NEW - Organization Admin) */
   --role-school-admin: #2196F3;   /* Blue */
   --role-principal: #FF5722;      /* Deep Orange */
   --role-teacher: #7CB342;        /* Green (primary) */

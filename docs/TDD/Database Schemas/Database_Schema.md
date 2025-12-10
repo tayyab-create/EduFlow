@@ -116,13 +116,61 @@ erDiagram
 
 ## 1. Core Tables
 
+### organizations
+
+School chain/group records for multi-branch school systems.
+
+```sql
+CREATE TABLE organizations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Basic Info
+    name VARCHAR(255) NOT NULL,                   -- "Beaconhouse School System"
+    name_urdu VARCHAR(255),
+    code VARCHAR(50) UNIQUE NOT NULL,             -- "BSS"
+    
+    -- Contact
+    logo_url VARCHAR(500),
+    headquarters_address TEXT,
+    city VARCHAR(100),
+    country VARCHAR(100) DEFAULT 'Pakistan',
+    phone VARCHAR(20),
+    email VARCHAR(255),
+    website VARCHAR(255),
+    
+    -- Branding (defaults for all schools)
+    primary_color VARCHAR(7) DEFAULT '#4F46E5',
+    secondary_color VARCHAR(7) DEFAULT '#10B981',
+    
+    -- Subscription & Limits
+    subscription_tier VARCHAR(20) DEFAULT 'enterprise',
+    max_schools INTEGER DEFAULT 10,
+    
+    -- Status
+    is_active BOOLEAN DEFAULT true,
+    
+    -- Timestamps
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX idx_organizations_code ON organizations(code);
+CREATE INDEX idx_organizations_active ON organizations(is_active) WHERE deleted_at IS NULL;
+```
+
+---
+
 ### schools
 
-Central tenant table for multi-tenancy.
+Individual school branches, optionally belonging to an organization.
 
 ```sql
 CREATE TABLE schools (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Organization Reference (optional - for school chains)
+    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
     
     -- Basic Info
     name VARCHAR(255) NOT NULL,
@@ -173,6 +221,7 @@ CREATE TABLE schools (
 
 -- Indexes
 CREATE INDEX idx_schools_code ON schools(code);
+CREATE INDEX idx_schools_organization ON schools(organization_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_schools_active ON schools(is_active) WHERE deleted_at IS NULL;
 CREATE INDEX idx_schools_city ON schools(city);
 ```
@@ -188,6 +237,7 @@ All system users (admins, teachers, parents, students).
 ```sql
 CREATE TYPE user_role AS ENUM (
     'super_admin',
+    'org_admin',        -- NEW: Organization Admin (manages all schools in org)
     'school_admin',
     'principal',
     'vice_principal',

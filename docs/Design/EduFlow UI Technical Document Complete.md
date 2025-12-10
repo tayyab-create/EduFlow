@@ -112,10 +112,18 @@ This document provides a comprehensive specification of the EduFlow frontend use
     
     /(super-admin)              # Super Admin routes
       /overview
+      /organizations            # Manage all organizations
       /schools
       /analytics
       /billing
       /support-tickets
+    
+    /(org-admin)                # Organization Admin routes (NEW)
+      /overview                 # Org-wide dashboard
+      /schools                  # Schools in this organization
+      /analytics                # Consolidated analytics
+      /reports                  # Cross-school reports
+      /settings                 # Org-level settings
     
     /(admin)                    # School Admin routes
       /overview

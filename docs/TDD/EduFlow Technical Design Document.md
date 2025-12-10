@@ -148,17 +148,39 @@ Starting with a modular monolith that can be split into microservices as needed.
 
 ### 2.3 Multi-Tenancy Architecture
 
+**Three-Tier Tenant Hierarchy**
+
+EduFlow supports school chains (like Beaconhouse, City School) with multiple branches:
+
+```
+Platform (EduFlow SaaS)
+└── Organization (School Chain, e.g., "Lahore Grammar School")
+    ├── School: LGS Johar Town (Lahore)
+    ├── School: LGS DHA (Lahore)
+    ├── School: LGS Gulberg (Karachi)
+    └── School: LGS F-7 (Islamabad)
+```
+
+**Role Hierarchy:**
+| Role | Scope | Access |
+|------|-------|--------|
+| `super_admin` | Platform-wide | All organizations, all schools, system settings |
+| `org_admin` | Organization-wide | All schools in organization, org-level settings |
+| `school_admin` | Single school | Full access within their assigned school |
+| All others | Single school | Role-specific access |
+
 **Shared Database with Tenant Isolation**
 
-Every table includes `tenant_id` column with automatic filtering:
+Tables include `organization_id` and/or `school_id` for filtering:
 
 ```typescript
-// Middleware injects tenant_id from JWT
+// Middleware injects tenant context from JWT
 @Injectable()
 export class TenantMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
-    const tenantId = extractTenantFromToken(req);
-    req['tenantId'] = tenantId;
+    const { organizationId, schoolId } = extractTenantFromToken(req);
+    req['organizationId'] = organizationId;
+    req['schoolId'] = schoolId;
     next();
   }
 }
@@ -169,11 +191,12 @@ export class TenantMiddleware implements NestMiddleware {
 - Simplified deployments
 - Easier maintenance
 - Fast tenant provisioning
+- School chain consolidation
 
 **Tenant Identification:**
 - Subdomain: `school-name.eduflow.pk`
 - Custom domain: `sms.schoolname.edu.pk`
-- JWT contains `tenant_id`
+- JWT contains `organization_id` and `school_id`
 - Header fallback: `X-Tenant-ID`
 
 ---
@@ -193,8 +216,11 @@ export class TenantMiddleware implements NestMiddleware {
 
 ### 3.2 PostgreSQL Core Tables
 
+**Organizations (NEW):**
+- `organizations` - School chain/group records (e.g., "Beaconhouse School System")
+
 **Core & Multi-tenancy:**
-- `schools` - School/tenant records with branding and settings
+- `schools` - Individual school branches with `organization_id` reference
 - `users` - All system users (role-based with soft delete)
 - `refresh_tokens` - JWT refresh token storage
 - `password_history` - Password reuse prevention
