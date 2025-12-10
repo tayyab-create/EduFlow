@@ -1,9 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
 
 interface User {
     id: string;
@@ -11,151 +9,174 @@ interface User {
     firstName: string;
     lastName: string;
     role: string;
+    schoolId?: string;
 }
 
+const roleLabels: Record<string, string> = {
+    super_admin: 'Super Admin',
+    org_admin: 'Organization Admin',
+    school_admin: 'School Admin',
+    principal: 'Principal',
+    teacher: 'Teacher',
+    accountant: 'Accountant',
+    parent: 'Parent',
+    student: 'Student',
+};
+
+const roleColors: Record<string, string> = {
+    super_admin: 'from-purple-500 to-purple-600',
+    org_admin: 'from-violet-500 to-violet-600',
+    school_admin: 'from-blue-500 to-blue-600',
+    principal: 'from-orange-500 to-orange-600',
+    teacher: 'from-green-500 to-green-600',
+    accountant: 'from-amber-500 to-amber-600',
+    parent: 'from-pink-500 to-pink-600',
+    student: 'from-cyan-500 to-cyan-600',
+};
+
 export default function DashboardPage() {
-    const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
 
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
-        if (!storedUser) {
-            router.push('/login');
-            return;
+        if (storedUser) {
+            setUser(JSON.parse(storedUser));
         }
-        setUser(JSON.parse(storedUser));
-    }, [router]);
-
-    const handleLogout = () => {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        router.push('/login');
-    };
+    }, []);
 
     if (!user) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                <p className="text-gray-500">Loading...</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <header className="bg-white border-b border-gray-200 px-6 py-4">
-                <div className="flex items-center justify-between max-w-7xl mx-auto">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center">
-                            <span className="text-white font-bold text-lg">E</span>
-                        </div>
-                        <h1 className="text-xl font-bold text-gray-900">EduFlow</h1>
-                    </div>
+        <div className="p-6">
+            {/* Welcome Banner */}
+            <div className={`bg-gradient-to-r ${roleColors[user.role] || 'from-gray-500 to-gray-600'} rounded-2xl p-6 text-white mb-8`}>
+                <h1 className="text-2xl font-bold mb-2">Welcome back, {user.firstName}! 👋</h1>
+                <p className="opacity-90">
+                    You're logged in as <strong>{roleLabels[user.role] || user.role}</strong>
+                </p>
+                {user.schoolId && (
+                    <p className="text-sm opacity-75 mt-1">School ID: {user.schoolId}</p>
+                )}
+            </div>
 
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm text-gray-600">
-                            Welcome, <strong>{user.firstName} {user.lastName}</strong>
-                        </span>
-                        <Button variant="outline" onClick={handleLogout}>
-                            Sign Out
-                        </Button>
-                    </div>
-                </div>
-            </header>
+            {/* Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <StatCard
+                    label="Total Students"
+                    value="--"
+                    icon="🎓"
+                    color="bg-green-50 text-green-600"
+                />
+                <StatCard
+                    label="Total Teachers"
+                    value="--"
+                    icon="👨‍🏫"
+                    color="bg-blue-50 text-blue-600"
+                />
+                <StatCard
+                    label="Active Schools"
+                    value="--"
+                    icon="🏫"
+                    color="bg-purple-50 text-purple-600"
+                />
+                <StatCard
+                    label="Organizations"
+                    value="--"
+                    icon="🏢"
+                    color="bg-amber-50 text-amber-600"
+                />
+            </div>
 
-            {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-6 py-8">
-                <div className="mb-8">
-                    <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
-                    <p className="text-gray-600 mt-1">Welcome to EduFlow School Management System</p>
-                </div>
-
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <Card className="border-l-4 border-l-indigo-500">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-500">Total Students</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-3xl font-bold text-gray-900">--</p>
-                            <p className="text-xs text-gray-500 mt-1">Connect database to see stats</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 border-l-green-500">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-500">Total Teachers</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-3xl font-bold text-gray-900">--</p>
-                            <p className="text-xs text-gray-500 mt-1">Connect database to see stats</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 border-l-yellow-500">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-500">Total Classes</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-3xl font-bold text-gray-900">--</p>
-                            <p className="text-xs text-gray-500 mt-1">Connect database to see stats</p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-l-4 border-l-purple-500">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-gray-500">Attendance Today</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-3xl font-bold text-gray-900">--</p>
-                            <p className="text-xs text-gray-500 mt-1">Connect database to see stats</p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* User Info Card */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Your Profile</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <span className="text-gray-500">Email:</span>
-                                <p className="font-medium">{user.email}</p>
-                            </div>
-                            <div>
-                                <span className="text-gray-500">Role:</span>
-                                <p className="font-medium capitalize">{user.role.replace('_', ' ')}</p>
-                            </div>
-                            <div>
-                                <span className="text-gray-500">Name:</span>
-                                <p className="font-medium">{user.firstName} {user.lastName}</p>
-                            </div>
-                            <div>
-                                <span className="text-gray-500">User ID:</span>
-                                <p className="font-medium text-xs font-mono">{user.id}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Backend Status */}
-                <Card className="mt-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="text-sm font-medium text-indigo-900">
-                                Backend API Connected - Login successful!
-                            </span>
-                        </div>
-                        <p className="text-xs text-indigo-700 mt-2">
-                            Auth module is working. Start the PostgreSQL database to persist data.
-                        </p>
-                    </CardContent>
-                </Card>
-            </main>
+            {/* Quick Actions */}
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <QuickActionCard
+                    href="/students"
+                    title="Manage Students"
+                    desc="View, add, or edit student records"
+                    icon="🎒"
+                    color="bg-green-500"
+                />
+                <QuickActionCard
+                    href="/schools"
+                    title="Manage Schools"
+                    desc="View and manage school branches"
+                    icon="🏫"
+                    color="bg-blue-500"
+                />
+                <QuickActionCard
+                    href="/organizations"
+                    title="Organizations"
+                    desc="Manage school chains"
+                    icon="🏢"
+                    color="bg-purple-500"
+                />
+            </div>
         </div>
+    );
+}
+
+function StatCard({
+    label,
+    value,
+    icon,
+    color,
+}: {
+    label: string;
+    value: string;
+    icon: string;
+    color: string;
+}) {
+    return (
+        <div className="bg-white rounded-xl shadow-sm p-5 border">
+            <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 ${color} rounded-xl flex items-center justify-center text-2xl`}>
+                    {icon}
+                </div>
+                <div>
+                    <p className="text-2xl font-bold text-gray-900">{value}</p>
+                    <p className="text-sm text-gray-500">{label}</p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function QuickActionCard({
+    href,
+    title,
+    desc,
+    icon,
+    color,
+}: {
+    href: string;
+    title: string;
+    desc: string;
+    icon: string;
+    color: string;
+}) {
+    return (
+        <Link
+            href={href}
+            className="bg-white rounded-xl shadow-sm p-5 border hover:shadow-md transition group"
+        >
+            <div className="flex items-start gap-4">
+                <div className={`w-12 h-12 ${color} rounded-xl flex items-center justify-center text-2xl text-white`}>
+                    {icon}
+                </div>
+                <div>
+                    <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition">
+                        {title}
+                    </h3>
+                    <p className="text-sm text-gray-500">{desc}</p>
+                </div>
+            </div>
+        </Link>
     );
 }

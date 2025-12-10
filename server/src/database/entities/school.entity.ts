@@ -6,13 +6,26 @@ import {
     UpdateDateColumn,
     DeleteDateColumn,
     OneToMany,
+    ManyToOne,
+    JoinColumn,
+    Index,
 } from 'typeorm';
 import { User } from './user.entity';
+import { Organization } from './organization.entity';
 
 @Entity('schools')
+@Index(['organizationId'])
 export class School {
     @PrimaryGeneratedColumn('uuid')
     id: string;
+
+    // Organization Reference (optional - for school chains)
+    @Column({ name: 'organization_id', type: 'uuid', nullable: true })
+    organizationId: string;
+
+    @ManyToOne(() => Organization, (org) => org.schools, { onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'organization_id' })
+    organization: Organization;
 
     // Basic Info
     @Column({ length: 255 })

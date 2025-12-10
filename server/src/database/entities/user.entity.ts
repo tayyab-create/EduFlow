@@ -15,6 +15,7 @@ import { RefreshToken } from './refresh-token.entity';
 
 export enum UserRole {
     SUPER_ADMIN = 'super_admin',
+    ORG_ADMIN = 'org_admin',
     SCHOOL_ADMIN = 'school_admin',
     PRINCIPAL = 'principal',
     VICE_PRINCIPAL = 'vice_principal',

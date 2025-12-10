@@ -6,7 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { authApi } from '@/lib/api/auth';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+// Demo accounts for quick testing
+const DEMO_ACCOUNTS = [
+    { role: 'super_admin', email: 'super@eduflow.pk', label: 'Super Admin', color: 'bg-purple-600', icon: '👑' },
+    { role: 'org_admin', email: 'org@eduflow.pk', label: 'Org Admin', color: 'bg-violet-600', icon: '🏢' },
+    { role: 'school_admin', email: 'school@eduflow.pk', label: 'School Admin', color: 'bg-blue-600', icon: '🏫' },
+    { role: 'principal', email: 'principal@eduflow.pk', label: 'Principal', color: 'bg-orange-600', icon: '👔' },
+    { role: 'teacher', email: 'teacher@eduflow.pk', label: 'Teacher', color: 'bg-green-600', icon: '👨‍🏫' },
+];
+
+const DEFAULT_PASSWORD = 'password123';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -14,100 +26,216 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingRole, setLoadingRole] = useState<string | null>(null);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleLogin = async (loginEmail: string, loginPassword: string) => {
         setError('');
         setIsLoading(true);
 
         try {
-            const response = await authApi.login({ email, password });
+            const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+            });
 
-            if (response.success && response.data) {
-                // Store tokens
-                localStorage.setItem('accessToken', response.data.tokens.accessToken);
-                localStorage.setItem('refreshToken', response.data.tokens.refreshToken);
-                localStorage.setItem('user', JSON.stringify(response.data.user));
+            const data = await response.json();
 
-                // Redirect to dashboard
+            if (response.ok) {
+                localStorage.setItem('accessToken', data.tokens.accessToken);
+                localStorage.setItem('refreshToken', data.tokens.refreshToken);
+                localStorage.setItem('user', JSON.stringify(data.user));
                 router.push('/dashboard');
             } else {
-                setError(response.error?.message || 'Login failed');
+                setError(data.message || 'Login failed');
             }
         } catch {
-            setError('An unexpected error occurred');
+            setError('Failed to connect to server');
         } finally {
             setIsLoading(false);
+            setLoadingRole(null);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await handleLogin(email, password);
+    };
+
+    const handleDemoLogin = async (account: typeof DEMO_ACCOUNTS[0]) => {
+        setLoadingRole(account.role);
+        setError('');
+
+        try {
+            // First try to login
+            const loginRes = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: account.email, password: DEFAULT_PASSWORD }),
+            });
+
+            if (loginRes.ok) {
+                const response = await loginRes.json();
+                const { user, tokens } = response.data || response;
+                localStorage.setItem('accessToken', tokens.accessToken);
+                localStorage.setItem('refreshToken', tokens.refreshToken);
+                localStorage.setItem('user', JSON.stringify(user));
+                router.push('/dashboard');
+                return;
+            }
+
+            // Login failed (user doesn't exist), create the user
+            console.log('Login failed, creating user...');
+
+            const registerBody: Record<string, string> = {
+                email: account.email,
+                password: DEFAULT_PASSWORD,
+                firstName: account.label.split(' ')[0],
+                lastName: 'Demo',
+                role: account.role,
+            };
+
+            // School admin gets a demo school
+            if (account.role === 'school_admin') {
+                registerBody.schoolName = 'Demo School';
+            }
+
+            const registerRes = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(registerBody),
+            });
+
+            const response = await registerRes.json();
+
+            if (registerRes.ok) {
+                const { user, tokens } = response.data || response;
+                localStorage.setItem('accessToken', tokens.accessToken);
+                localStorage.setItem('refreshToken', tokens.refreshToken);
+                localStorage.setItem('user', JSON.stringify(user));
+                router.push('/dashboard');
+            } else {
+                setError(response.message || 'Failed to create demo user');
+            }
+        } catch (err) {
+            console.error('Demo login error:', err);
+            setError('Failed to connect to server');
+        } finally {
+            setLoadingRole(null);
         }
     };
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-100 p-4">
-            <Card className="w-full max-w-md shadow-xl">
-                <CardHeader className="space-y-1 text-center">
-                    <div className="flex justify-center mb-4">
-                        <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                            <span className="text-white font-bold text-2xl">E</span>
-                        </div>
-                    </div>
-                    <CardTitle className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                        EduFlow
-                    </CardTitle>
-                    <CardDescription className="text-gray-500">
-                        School Management System
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {error && (
-                            <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-200">
-                                {error}
+            <div className="w-full max-w-4xl grid lg:grid-cols-2 gap-6">
+                {/* Login Form */}
+                <Card className="shadow-xl">
+                    <CardHeader className="space-y-1 text-center">
+                        <div className="flex justify-center mb-4">
+                            <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                                <span className="text-white font-bold text-2xl">E</span>
                             </div>
-                        )}
-
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                placeholder="admin@school.edu.pk"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                className="h-11"
-                            />
                         </div>
+                        <CardTitle className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                            EduFlow
+                        </CardTitle>
+                        <CardDescription className="text-gray-500">
+                            School Management System
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            {error && (
+                                <div className="p-3 text-sm text-red-600 bg-red-50 rounded-lg border border-red-200">
+                                    {error}
+                                </div>
+                            )}
 
-                        <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                className="h-11"
-                            />
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Email</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    placeholder="admin@school.edu.pk"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                    className="h-11"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="password">Password</Label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    className="h-11"
+                                />
+                            </div>
+
+                            <Button
+                                type="submit"
+                                className="w-full h-11 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? 'Signing in...' : 'Sign In'}
+                            </Button>
+
+                            <p className="text-center text-sm text-gray-500 mt-4">
+                                Don&apos;t have an account?{' '}
+                                <a href="/register" className="text-indigo-600 hover:underline font-medium">
+                                    Register
+                                </a>
+                            </p>
+                        </form>
+                    </CardContent>
+                </Card>
+
+                {/* Demo Quick Login */}
+                <Card className="shadow-xl">
+                    <CardHeader>
+                        <CardTitle className="text-lg">🚀 Quick Demo Login</CardTitle>
+                        <CardDescription>
+                            Click any role to instantly login with a demo account
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {DEMO_ACCOUNTS.map((account) => (
+                            <button
+                                key={account.role}
+                                onClick={() => handleDemoLogin(account)}
+                                disabled={loadingRole !== null}
+                                className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition hover:shadow-md ${loadingRole === account.role
+                                    ? 'border-indigo-400 bg-indigo-50'
+                                    : 'border-gray-200 hover:border-indigo-300'
+                                    }`}
+                            >
+                                <div className={`w-10 h-10 ${account.color} rounded-lg flex items-center justify-center text-white text-xl`}>
+                                    {account.icon}
+                                </div>
+                                <div className="text-left flex-1">
+                                    <p className="font-semibold text-gray-900">{account.label}</p>
+                                    <p className="text-xs text-gray-500">{account.email}</p>
+                                </div>
+                                {loadingRole === account.role && (
+                                    <span className="text-sm text-indigo-600">Loading...</span>
+                                )}
+                            </button>
+                        ))}
+
+                        <div className="pt-3 border-t mt-4">
+                            <p className="text-xs text-gray-400 text-center">
+                                Demo accounts are auto-created on first login.<br />
+                                Password: <code className="bg-gray-100 px-1 rounded">{DEFAULT_PASSWORD}</code>
+                            </p>
                         </div>
-
-                        <Button
-                            type="submit"
-                            className="w-full h-11 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                            disabled={isLoading}
-                        >
-                            {isLoading ? 'Signing in...' : 'Sign In'}
-                        </Button>
-
-                        <p className="text-center text-sm text-gray-500 mt-4">
-                            Don&apos;t have an account?{' '}
-                            <a href="/register" className="text-indigo-600 hover:underline font-medium">
-                                Register
-                            </a>
-                        </p>
-                    </form>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }
