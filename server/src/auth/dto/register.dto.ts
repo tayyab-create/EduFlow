@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength, IsOptional, IsEnum } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsOptional, IsEnum, IsUUID, ValidateIf } from 'class-validator';
 import { UserRole } from '../../database/entities/user.entity';
 
 export class RegisterDto {
@@ -27,7 +27,24 @@ export class RegisterDto {
     @IsOptional()
     role?: UserRole;
 
-    @IsString()
+    /**
+     * Direct school ID assignment (for Super Admin creating users)
+     */
+    @IsUUID()
     @IsOptional()
     schoolId?: string;
+
+    /**
+     * School code to join an existing school (for self-registration)
+     */
+    @IsString()
+    @IsOptional()
+    schoolCode?: string;
+
+    /**
+     * For school admin registration - creates new school with this name
+     */
+    @IsString()
+    @IsOptional()
+    schoolName?: string;
 }

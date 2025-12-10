@@ -3,6 +3,7 @@ import {
     UnauthorizedException,
     ConflictException,
     BadRequestException,
+    NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,6 +13,7 @@ import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { User, UserStatus, UserRole } from '../database/entities/user.entity';
 import { RefreshToken } from '../database/entities/refresh-token.entity';
+import { School } from '../database/entities/school.entity';
 import { LoginDto, RegisterDto, RefreshTokenDto } from './dto';
 import { JwtPayload } from './strategies/jwt.strategy';
 
@@ -33,15 +35,49 @@ export class AuthService {
         private userRepository: Repository<User>,
         @InjectRepository(RefreshToken)
         private refreshTokenRepository: Repository<RefreshToken>,
+        @InjectRepository(School)
+        private schoolRepository: Repository<School>,
         private jwtService: JwtService,
         private configService: ConfigService,
     ) { }
 
     async register(dto: RegisterDto): Promise<AuthResponse> {
-        // Check if email already exists
+        // Resolve school ID from various sources
+        let schoolId = dto.schoolId;
+
+        // If schoolCode provided, look up the school
+        if (!schoolId && dto.schoolCode) {
+            const school = await this.schoolRepository.findOne({
+                where: { code: dto.schoolCode, isActive: true },
+            });
+            if (!school) {
+                throw new NotFoundException(`School with code ${dto.schoolCode} not found`);
+            }
+            schoolId = school.id;
+        }
+
+        // If schoolName provided, create a new school (for school admin registration)
+        if (!schoolId && dto.schoolName) {
+            const schoolCode = this.generateSchoolCode(dto.schoolName);
+            const existingSchool = await this.schoolRepository.findOne({
+                where: { code: schoolCode },
+            });
+            if (existingSchool) {
+                throw new ConflictException(`School code ${schoolCode} already exists. Please use a different name.`);
+            }
+
+            const newSchool = this.schoolRepository.create({
+                name: dto.schoolName,
+                code: schoolCode,
+            });
+            await this.schoolRepository.save(newSchool);
+            schoolId = newSchool.id;
+        }
+
+        // Check if email already exists (within school scope if applicable)
         const whereClause: any = { email: dto.email };
-        if (dto.schoolId) {
-            whereClause.schoolId = dto.schoolId;
+        if (schoolId) {
+            whereClause.schoolId = schoolId;
         }
         const existingUser = await this.userRepository.findOne({
             where: whereClause,
@@ -61,9 +97,9 @@ export class AuthService {
             firstName: dto.firstName,
             lastName: dto.lastName,
             phone: dto.phone,
-            role: dto.role || UserRole.SCHOOL_ADMIN,
+            role: dto.role || (schoolId ? UserRole.SCHOOL_ADMIN : UserRole.SUPER_ADMIN),
             status: UserStatus.ACTIVE, // For dev, auto-activate
-            schoolId: dto.schoolId,
+            schoolId,
         });
 
         await this.userRepository.save(user);
@@ -75,6 +111,19 @@ export class AuthService {
             user: this.sanitizeUser(user),
             tokens,
         };
+    }
+
+    /**
+     * Generate a school code from school name.
+     */
+    private generateSchoolCode(name: string): string {
+        const prefix = name
+            .split(' ')
+            .map((w) => w.charAt(0).toUpperCase())
+            .join('')
+            .slice(0, 3);
+        const suffix = Math.random().toString(36).substring(2, 5).toUpperCase();
+        return `${prefix}-${suffix}`;
     }
 
     async login(dto: LoginDto, ipAddress?: string, userAgent?: string): Promise<AuthResponse> {
