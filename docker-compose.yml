@@ -1,0 +1,40 @@
+# EduFlow Docker Services
+# NOTE: Docker Desktop must be running before using docker-compose
+# Install Docker Desktop from: https://www.docker.com/products/docker-desktop
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: eduflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: eduflow
+    ports:
+      - "5433:5432"  # Using 5433 externally to avoid conflict with local PostgreSQL
+    volumes:
+      - eduflow_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: eduflow-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - eduflow_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  eduflow_postgres_data:
+  eduflow_redis_data:
