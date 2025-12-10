@@ -101,11 +101,13 @@ This document provides a comprehensive specification of the EduFlow frontend use
     /contact
   
   /(auth)                       # Authentication pages
-    /login
-    /register
+    /login                      # Login only (no public registration)
     /forgot-password
     /reset-password
     /verify-email
+  
+  # NOTE: No /register route for admin roles
+  # Admins are created by parent-level admins via User Management
   
   /(dashboard)                  # Protected routes (auth required)
     /layout.tsx                 # Main dashboard layout with sidebar
@@ -113,17 +115,35 @@ This document provides a comprehensive specification of the EduFlow frontend use
     /(super-admin)              # Super Admin routes
       /overview
       /organizations            # Manage all organizations
+      /organizations/:id/admins # Manage Org Admins
       /schools
+      /schools/:id/admins       # Manage School Admins  
+      /users                    # All platform users
       /analytics
       /billing
       /support-tickets
     
-    /(org-admin)                # Organization Admin routes (NEW)
+    /(org-admin)                # Organization Admin routes
       /overview                 # Org-wide dashboard
       /schools                  # Schools in this organization
+      /schools/:id/admins       # Manage School Admins
+      /users                    # Users in this organization
       /analytics                # Consolidated analytics
       /reports                  # Cross-school reports
       /settings                 # Org-level settings
+    
+    /(admin)                    # School Admin routes
+      /overview
+      /staff                    # Manage school staff
+      /staff/invite             # Invite new staff members
+      /students
+      /teachers
+      /classes
+      /subjects
+      /timetable
+      /fees
+      /reports
+      /settings
     
     /(admin)                    # School Admin routes
       /overview

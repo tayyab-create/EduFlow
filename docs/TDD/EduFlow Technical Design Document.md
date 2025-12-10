@@ -323,11 +323,28 @@ export class TenantMiddleware implements NestMiddleware {
 2. API requests use Access Token
 3. Expired token → Use Refresh Token to get new Access Token
 
+**Hierarchical Admin Management (No Public Registration):**
+
+Administrators cannot self-register. All admin accounts are created by parent-level admins:
+
+| Creator | Can Create |
+|---------|------------|
+| **Super Admin** | Org Admins, School Admins, Organizations, Schools |
+| **Org Admin** | School Admins (within org), Other Org Admins (within org), Schools (within org) |
+| **School Admin** | Staff (Principal, Teachers, Accountant, etc.) |
+
+**Initial Setup:**
+1. System seeds default Super Admin on first deployment
+2. Super Admin creates Organizations and Org Admins
+3. Org Admins create Schools and School Admins
+4. School Admins create Staff members
+
 **Token Structure:**
 ```json
 {
   "sub": "user-uuid",
-  "tenant_id": "tenant-uuid",
+  "organization_id": "org-uuid",
+  "school_id": "school-uuid",
   "role": "teacher",
   "permissions": ["read:students", "write:attendance"]
 }
@@ -335,14 +352,19 @@ export class TenantMiddleware implements NestMiddleware {
 
 ### 4.3 Authorization (RBAC)
 
-**Roles:**
-- `super_admin` - Platform administrator
+**Roles (Hierarchical):**
+- `super_admin` - Platform administrator (seeded, not created via UI)
+- `org_admin` - Organization/school chain administrator
 - `school_admin` - School administrator
 - `principal` - School principal
+- `vice_principal` - Assistant principal
 - `teacher` - Teaching staff
+- `accountant` - Finance staff
+- `hr` - Human resources
+- `librarian` - Library management
+- `receptionist` - Front desk
 - `parent` - Student guardian
 - `student` - Enrolled student
-- `accountant` - Finance staff
 
 **Permission Matrix:** Role-based access to entities (CRUD permissions)
 
@@ -354,6 +376,12 @@ export class TenantMiddleware implements NestMiddleware {
 - `POST /api/v1/auth/refresh`
 - `POST /api/v1/auth/forgot-password`
 - `GET /api/v1/auth/me`
+
+**User Management (Hierarchical):**
+- `POST /api/v1/users` - Create user (role-restricted)
+- `GET /api/v1/users` - List users (filtered by scope)
+- `PATCH /api/v1/users/:id` - Update user
+- `DELETE /api/v1/users/:id` - Deactivate user
 
 **Students:**
 - `GET /api/v1/students` - List students (filtered by role)

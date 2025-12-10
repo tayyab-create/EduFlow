@@ -768,12 +768,26 @@ colors: {
 
 ### 7.2 Dashboard Layouts by Role
 
-**Admin Dashboard:**
+**Super Admin Dashboard (Platform Owner):**
+- Platform-wide statistics (total orgs, schools, users)
+- Organization management quick actions
+- System health monitoring
+- Recent user registrations
+- Create Organization / Create Org Admin buttons
+
+**Org Admin Dashboard (School Chain Admin):**
+- Organization-wide stats (all schools in chain)
+- School comparison analytics
+- Create School / Create School Admin buttons
+- Cross-school reports
+- Staff allocation overview
+
+**School Admin Dashboard:**
 - Overview stats (enrollment, attendance, fees)
 - Financial charts
 - Pending approvals
 - Recent activities
-- Quick actions
+- Quick actions (Add Staff, Add Student)
 
 **Teacher Dashboard:**
 - Today's schedule
