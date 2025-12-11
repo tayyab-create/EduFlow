@@ -11,6 +11,7 @@ import {
     Index,
 } from 'typeorm';
 import { School } from './school.entity';
+import { Organization } from './organization.entity';
 import { RefreshToken } from './refresh-token.entity';
 
 export enum UserRole {
@@ -41,7 +42,17 @@ export class User {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
+    // Multi-tenancy: Organization & School
+    @Column({ name: 'organization_id', type: 'uuid', nullable: true })
+    @Index()
+    organizationId: string;
+
+    @ManyToOne(() => Organization, (organization) => organization.users, { onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'organization_id' })
+    organization: Organization;
+
     @Column({ name: 'school_id', type: 'uuid', nullable: true })
+    @Index()
     schoolId: string;
 
     @ManyToOne(() => School, (school) => school.users, { onDelete: 'CASCADE' })

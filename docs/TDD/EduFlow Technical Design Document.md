@@ -323,7 +323,11 @@ export class TenantMiddleware implements NestMiddleware {
 2. API requests use Access Token
 3. Expired token → Use Refresh Token to get new Access Token
 
-**Hierarchical Admin Management (No Public Registration):**
+**IMPORTANT: No Public Registration**
+
+🚫 **EduFlow does NOT have a public registration page.** All user accounts are created by administrators in a hierarchical manner. There is no "Sign Up" button or self-registration flow.
+
+**Hierarchical Admin Management:**
 
 Administrators cannot self-register. All admin accounts are created by parent-level admins:
 
@@ -338,6 +342,7 @@ Administrators cannot self-register. All admin accounts are created by parent-le
 2. Super Admin creates Organizations and Org Admins
 3. Org Admins create Schools and School Admins
 4. School Admins create Staff members
+5. Staff members (Teachers, etc.) create Students and Parents
 
 **Token Structure:**
 ```json
@@ -366,7 +371,156 @@ Administrators cannot self-register. All admin accounts are created by parent-le
 - `parent` - Student guardian
 - `student` - Enrolled student
 
-**Permission Matrix:** Role-based access to entities (CRUD permissions)
+**Data Scope by Role:**
+
+| Role | Data Scope | Access Level |
+|------|-----------|--------------|
+| `super_admin` | **All organizations, all schools** | Full platform access |
+| `org_admin` | **All schools in their organization** | Organization-wide access |
+| `school_admin` | **Only their assigned school** | School-wide access |
+| All others | **Only their assigned school** | Role-specific access |
+
+**CRUD Permissions Matrix:**
+
+See Section 4.3.1 below for complete CRUD permissions by role and entity.
+
+### 4.3.1 CRUD Permissions Matrix
+
+**Legend:**
+- ✅ **Full Access** - Create, Read, Update, Delete
+- 📖 **Read Only** - View only
+- 📝 **Create & Read** - Can create new records and view
+- ✏️ **Read & Update** - Can view and modify
+- ❌ **No Access** - Cannot access
+
+#### Organizations & Schools
+
+| Role | Organizations | Schools | Academic Years | Classes/Sections |
+|------|---------------|---------|----------------|------------------|
+| **Super Admin** | ✅ Full | ✅ Full | ✅ Full (all schools) | ✅ Full (all schools) |
+| **Org Admin** | 📖 Read Own | ✅ Full (within org) | ✅ Full (org schools) | ✅ Full (org schools) |
+| **School Admin** | ❌ No Access | 📖 Read Own | ✅ Full (own school) | ✅ Full (own school) |
+| **Principal** | ❌ No Access | 📖 Read Own | 📖 Read Only | ✏️ Read & Update |
+| **Vice Principal** | ❌ No Access | 📖 Read Own | 📖 Read Only | ✏️ Read & Update |
+| **Teacher** | ❌ No Access | 📖 Read Own | 📖 Read Only | 📖 Read Only |
+| **Accountant** | ❌ No Access | 📖 Read Own | 📖 Read Only | 📖 Read Only |
+| **HR** | ❌ No Access | 📖 Read Own | 📖 Read Only | 📖 Read Only |
+| **Parent** | ❌ No Access | 📖 Read Own | 📖 Read Only | 📖 Read Only |
+| **Student** | ❌ No Access | 📖 Read Own | 📖 Read Only | 📖 Read Only |
+
+#### Users & Staff
+
+| Role | Create Users | View Users | Update Users | Delete Users | Scope |
+|------|-------------|-----------|--------------|--------------|-------|
+| **Super Admin** | ✅ All roles | ✅ All | ✅ All | ✅ All | Platform-wide |
+| **Org Admin** | ✅ School Admins, Org Admins | ✅ Org-wide | ✅ Org-wide | ✅ Org-wide | Organization only |
+| **School Admin** | ✅ Staff (not admins) | ✅ School-wide | ✅ School-wide | ✅ School-wide | School only |
+| **Principal** | ❌ No | ✅ School-wide | ✏️ Limited (own staff) | ❌ No | School only |
+| **HR** | 📝 Create Staff | ✅ Staff only | ✏️ Staff only | ❌ No | School only |
+| All others | ❌ No | 📖 Limited | ❌ No | ❌ No | - |
+
+#### Students
+
+| Role | Create | Read | Update | Delete | Notes |
+|------|--------|------|--------|--------|-------|
+| **Super Admin** | ✅ Yes | ✅ All schools | ✅ All | ✅ All | Platform-wide |
+| **Org Admin** | ✅ Yes | ✅ Org schools | ✅ Org-wide | ✅ Org-wide | Organization only |
+| **School Admin** | ✅ Yes | ✅ School-wide | ✅ School-wide | ✅ Soft delete | School only |
+| **Principal** | ✅ Yes | ✅ School-wide | ✅ School-wide | ✅ Soft delete | School only |
+| **Vice Principal** | ✅ Yes | ✅ School-wide | ✅ School-wide | ❌ No | School only |
+| **Teacher** | ❌ No | 📖 Own classes | ✏️ Limited (contact info) | ❌ No | Assigned classes |
+| **Accountant** | ❌ No | ✅ School-wide | ❌ No | ❌ No | For fee management |
+| **HR** | ❌ No | 📖 Read Only | ❌ No | ❌ No | Staff records only |
+| **Parent** | ❌ No | 📖 Own children | ❌ No | ❌ No | Own children only |
+| **Student** | ❌ No | 📖 Self only | ✏️ Profile only | ❌ No | Own record only |
+
+#### Attendance
+
+| Role | Mark Attendance | View | Update/Correct | Delete | Scope |
+|------|----------------|------|----------------|--------|-------|
+| **Super Admin** | ✅ Yes | ✅ All | ✅ All | ✅ Yes | Platform-wide |
+| **Org Admin** | ✅ Yes | ✅ Org-wide | ✅ Org-wide | ✅ Yes | Organization |
+| **School Admin** | ✅ Yes | ✅ School-wide | ✅ School-wide | ✅ Yes | School only |
+| **Principal** | ✅ Yes | ✅ School-wide | ✅ School-wide | ✅ Yes | School only |
+| **Vice Principal** | ✅ Yes | ✅ School-wide | ✅ School-wide | ✅ Yes | School only |
+| **Teacher** | ✅ Yes | 📖 Own classes | ✏️ Own classes (24h limit) | ❌ No | Assigned classes |
+| **Accountant** | ❌ No | 📖 Read Only | ❌ No | ❌ No | For reports |
+| **Parent** | ❌ No | 📖 Own children | ❌ No | ❌ No | Own children |
+| **Student** | ❌ No | 📖 Self only | ❌ No | ❌ No | Own record |
+
+#### Grades & Assessments
+
+| Role | Create Assessments | Enter Grades | View | Update Grades | Delete | Publish |
+|------|-------------------|--------------|------|---------------|--------|---------|
+| **Super Admin** | ✅ Yes | ✅ Yes | ✅ All | ✅ All | ✅ Yes | ✅ Yes |
+| **Org Admin** | ✅ Yes | ✅ Yes | ✅ Org-wide | ✅ Org-wide | ✅ Yes | ✅ Yes |
+| **School Admin** | ✅ Yes | ✅ Yes | ✅ School-wide | ✅ School-wide | ✅ Yes | ✅ Yes |
+| **Principal** | ✅ Yes | ✅ Yes | ✅ School-wide | ✅ School-wide | ✅ Yes | ✅ Yes |
+| **Vice Principal** | ✅ Yes | ✅ Yes | ✅ School-wide | ✅ School-wide | ❌ No | ✏️ Recommend |
+| **Teacher** | ✅ Own subjects | ✅ Own subjects | 📖 Own classes | ✏️ Own (before publish) | ❌ No | ❌ No |
+| **Accountant** | ❌ No | ❌ No | 📖 Read Only | ❌ No | ❌ No | ❌ No |
+| **Parent** | ❌ No | ❌ No | 📖 Own children (published) | ❌ No | ❌ No | ❌ No |
+| **Student** | ❌ No | ❌ No | 📖 Self (published) | ❌ No | ❌ No | ❌ No |
+
+#### Fees & Payments
+
+| Role | Create Fee Structures | Assign Fees | View | Record Payments | Update | Delete |
+|------|----------------------|-------------|------|-----------------|--------|--------|
+| **Super Admin** | ✅ Yes | ✅ All | ✅ All | ✅ Yes | ✅ All | ✅ Yes |
+| **Org Admin** | ✅ Yes | ✅ Org-wide | ✅ Org-wide | ✅ Yes | ✅ Org-wide | ✅ Yes |
+| **School Admin** | ✅ Yes | ✅ School-wide | ✅ School-wide | ✅ Yes | ✅ School-wide | ✅ Yes |
+| **Principal** | ✅ Yes | ✅ School-wide | ✅ School-wide | ✅ Yes | ✅ School-wide | ❌ No |
+| **Accountant** | ✅ Yes | ✅ School-wide | ✅ School-wide | ✅ Yes | ✅ Fee-related | ✏️ Pending only |
+| **Teacher** | ❌ No | ❌ No | 📖 Own classes | ❌ No | ❌ No | ❌ No |
+| **Parent** | ❌ No | ❌ No | 📖 Own children | ✅ Pay online | ❌ No | ❌ No |
+| **Student** | ❌ No | ❌ No | 📖 Self only | ❌ No | ❌ No | ❌ No |
+
+#### Timetables
+
+| Role | Create | View | Update | Delete | Scope |
+|------|--------|------|--------|--------|-------|
+| **Super Admin** | ✅ Yes | ✅ All | ✅ All | ✅ Yes | Platform-wide |
+| **Org Admin** | ✅ Yes | ✅ Org-wide | ✅ Org-wide | ✅ Yes | Organization |
+| **School Admin** | ✅ Yes | ✅ School-wide | ✅ School-wide | ✅ Yes | School only |
+| **Principal** | ✅ Yes | ✅ School-wide | ✅ School-wide | ✅ Yes | School only |
+| **Vice Principal** | ✏️ Draft | ✅ School-wide | ✏️ Draft only | ❌ No | School only |
+| **Teacher** | ❌ No | 📖 Own schedule | ❌ No | ❌ No | Own schedule |
+| **Student** | ❌ No | 📖 Own class | ❌ No | ❌ No | Own class |
+| **Parent** | ❌ No | 📖 Children's classes | ❌ No | ❌ No | Children |
+
+#### Messages & Announcements
+
+| Role | Send Announcements | Send Direct Messages | View | Reply | Delete |
+|------|-------------------|---------------------|------|-------|--------|
+| **Super Admin** | ✅ Platform-wide | ✅ All | ✅ All | ✅ Yes | ✅ Yes |
+| **Org Admin** | ✅ Org-wide | ✅ Org-wide | ✅ Org-wide | ✅ Yes | ✅ Yes |
+| **School Admin** | ✅ School-wide | ✅ School-wide | ✅ School-wide | ✅ Yes | ✅ Yes |
+| **Principal** | ✅ School-wide | ✅ School-wide | ✅ School-wide | ✅ Yes | ✅ Own |
+| **Teacher** | ✅ Own classes | ✅ Students/Parents | 📖 Received | ✅ Yes | ✅ Own |
+| **Parent** | ❌ No | ✅ Teachers only | 📖 Received | ✅ Yes | ✅ Own |
+| **Student** | ❌ No | ✅ Teachers only | 📖 Received | ✅ Yes | ✅ Own |
+
+#### Reports & Analytics
+
+| Role | View Reports | Export Data | Analytics Dashboard | Custom Reports |
+|------|-------------|-------------|-----------------------|----------------|
+| **Super Admin** | ✅ All | ✅ All | ✅ Platform-wide | ✅ Yes |
+| **Org Admin** | ✅ Org-wide | ✅ Org-wide | ✅ Organization | ✅ Yes |
+| **School Admin** | ✅ School-wide | ✅ School-wide | ✅ School | ✅ Yes |
+| **Principal** | ✅ School-wide | ✅ School-wide | ✅ School | ✅ Yes |
+| **Vice Principal** | ✅ School-wide | ✅ School-wide | ✅ School | ✏️ Limited |
+| **Teacher** | 📖 Own classes | 📖 Own classes | ❌ No | ❌ No |
+| **Accountant** | ✅ Financial | ✅ Financial | ✅ Financial | ✅ Financial |
+| **Parent** | 📖 Own children | 📖 Own children | ❌ No | ❌ No |
+| **Student** | 📖 Self only | 📖 Self only | ❌ No | ❌ No |
+
+**Implementation Notes:**
+
+1. **Row-Level Security**: All database queries automatically filter by `organization_id` and/or `school_id` based on JWT claims
+2. **Permission Checks**: Every API endpoint validates user role and data scope before processing
+3. **Audit Logging**: All CRUD operations logged with user, timestamp, and changes
+4. **Soft Deletes**: Critical entities (students, staff) use soft delete (`deleted_at`) instead of hard delete
+5. **Time-Based Restrictions**: Some operations (e.g., attendance correction) have time limits enforced at API level
 
 ### 4.4 Core API Endpoints
 
@@ -421,24 +575,28 @@ Administrators cannot self-register. All admin accounts are created by parent-le
 ```
 /app
   /(auth)
-    /login
-    /register
+    /login              # ONLY login page (no registration)
+    /forgot-password    # Password reset flow
   /(dashboard)
     /students
     /attendance
     /grades
     /fees
     /reports
+    /users              # Admin creates users here
   /api (API routes for BFF pattern)
 /components
   /ui (shadcn/ui components)
   /features
+    /user-management  # User creation forms by role
 /lib
   /api (API client)
   /hooks
   /utils
 /store (Zustand stores)
 ```
+
+**Note**: There is NO `/register` route. All user creation happens through admin dashboards.
 
 **Key Frontend Components:**
 - Authentication System

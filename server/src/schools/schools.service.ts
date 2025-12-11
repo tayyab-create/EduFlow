@@ -2,10 +2,12 @@ import {
     Injectable,
     NotFoundException,
     ConflictException,
+    ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { School } from '../database/entities/school.entity';
+import { User, UserRole } from '../database/entities/user.entity';
 import { CreateSchoolDto, UpdateSchoolDto } from './dto';
 
 /**
@@ -20,16 +22,41 @@ export class SchoolsService {
 
     /**
      * Create a new school.
+     * Super Admin can create in any organization.
+     * Org Admin can only create in their own organization.
      */
-    async create(createSchoolDto: CreateSchoolDto): Promise<School> {
-        // Check for duplicate code
+    async create(createSchoolDto: CreateSchoolDto, creator: User): Promise<School> {
+        // Org Admin validation: must create school in their own organization
+        if (creator.role === UserRole.ORG_ADMIN) {
+            if (!creator.organizationId) {
+                throw new ForbiddenException('Org Admin must be associated with an organization');
+            }
+
+            // If organizationId provided in DTO, must match creator's organization
+            if (createSchoolDto.organizationId && createSchoolDto.organizationId !== creator.organizationId) {
+                throw new ForbiddenException('Org Admin can only create schools within their own organization');
+            }
+
+            // Auto-set organizationId to creator's organization
+            createSchoolDto.organizationId = creator.organizationId;
+        }
+
+        // Super Admin: organizationId must be provided in DTO
+        if (creator.role === UserRole.SUPER_ADMIN && !createSchoolDto.organizationId) {
+            throw new ConflictException('organizationId is required when creating a school');
+        }
+
+        // Check for duplicate code within the organization
         const existing = await this.schoolRepository.findOne({
-            where: { code: createSchoolDto.code },
+            where: {
+                code: createSchoolDto.code,
+                organizationId: createSchoolDto.organizationId,
+            },
         });
 
         if (existing) {
             throw new ConflictException(
-                `School with code ${createSchoolDto.code} already exists`,
+                `School with code ${createSchoolDto.code} already exists in this organization`,
             );
         }
 

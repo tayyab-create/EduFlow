@@ -7,10 +7,12 @@ import { Repository } from 'typeorm';
 import { User } from '../../database/entities/user.entity';
 
 export interface JwtPayload {
-    sub: string;
-    email: string;
-    role: string;
-    schoolId?: string;
+    sub: string;           // User ID
+    email: string;         // User email
+    role: string;          // User role
+    organizationId?: string;  // Organization ID (for org admins)
+    schoolId?: string;     // School ID (for school-level users)
+    permissions?: string[];   // Dynamic permissions array
 }
 
 @Injectable()
@@ -30,7 +32,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     async validate(payload: JwtPayload): Promise<User> {
         const user = await this.userRepository.findOne({
             where: { id: payload.sub },
-            relations: ['school'],
+            relations: ['school', 'organization'],
         });
 
         if (!user) {

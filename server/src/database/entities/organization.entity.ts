@@ -8,6 +8,7 @@ import {
     OneToMany,
 } from 'typeorm';
 import { School } from './school.entity';
+import { User } from './user.entity';
 
 /**
  * Organization entity - represents a school chain/group.
@@ -81,4 +82,7 @@ export class Organization {
     // Relations
     @OneToMany(() => School, (school) => school.organization)
     schools: School[];
+
+    @OneToMany(() => User, (user) => user.organization)
+    users: User[];
 }

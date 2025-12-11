@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { AuthService, AuthResponse, AuthTokens } from './auth.service';
-import { LoginDto, RegisterDto, RefreshTokenDto } from './dto';
+import { LoginDto, RefreshTokenDto } from './dto';
 import { JwtAuthGuard } from './guards';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -20,16 +20,12 @@ import { User } from '../database/entities/user.entity';
 export class AuthController {
     constructor(private readonly authService: AuthService) { }
 
-    @Public()
-    @Post('register')
-    async register(@Body() dto: RegisterDto): Promise<{ success: boolean; message: string; data: AuthResponse }> {
-        const result = await this.authService.register(dto);
-        return {
-            success: true,
-            message: 'Registration successful',
-            data: result,
-        };
-    }
+    // ❌ REMOVED: Public registration endpoint
+    // Per documentation: "EduFlow does NOT have a public registration page"
+    // All users must be created by administrators through POST /api/v1/users
+    //
+    // If you need to create a user, use the Users API with proper admin authentication:
+    // POST /api/v1/users (requires SUPER_ADMIN, ORG_ADMIN, or SCHOOL_ADMIN role)
 
     @Public()
     @Post('login')

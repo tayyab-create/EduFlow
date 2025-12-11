@@ -4,6 +4,7 @@ import {
     IsEmail,
     IsUrl,
     IsBoolean,
+    IsUUID,
     MaxLength,
     IsObject,
 } from 'class-validator';
@@ -12,6 +13,10 @@ import {
  * DTO for creating a new school.
  */
 export class CreateSchoolDto {
+    @IsOptional()
+    @IsUUID()
+    organizationId?: string;
+
     @IsString()
     @MaxLength(255)
     name: string;

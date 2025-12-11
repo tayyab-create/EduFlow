@@ -1099,6 +1099,10 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 
 ### 12.1 Login Screen
 
+**🚫 IMPORTANT: Login Only - No Registration**
+
+EduFlow does NOT have a public registration page. There is no "Sign Up" button, "Create Account" link, or self-registration flow. All user accounts are created by administrators.
+
 **Layout:**
 - Center-aligned form
 - Logo + Tagline
@@ -1106,12 +1110,43 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 - "Remember Me" checkbox
 - Primary button: "Sign In"
 - Links: "Forgot Password", "Need Help?"
+- **NO "Sign Up" or "Register" link**
 
 **Components:**
 - Card (max-width: 400px)
 - Text inputs with icons
 - Primary button (full-width)
 - Ghost button for secondary actions
+
+**Visual Example:**
+```
+┌─────────────────────────────────────┐
+│          [EduFlow Logo]             │
+│    Streamline Education, Empower    │
+│            Learning                  │
+│                                     │
+│  ┌───────────────────────────────┐ │
+│  │ Email                         │ │
+│  │ [📧 email@example.com       ] │ │
+│  └───────────────────────────────┘ │
+│                                     │
+│  ┌───────────────────────────────┐ │
+│  │ Password                      │ │
+│  │ [🔒 ••••••••••••            ] │ │
+│  └───────────────────────────────┘ │
+│                                     │
+│  ☐ Remember me                      │
+│                                     │
+│  ┌───────────────────────────────┐ │
+│  │      [Sign In →]              │ │
+│  └───────────────────────────────┘ │
+│                                     │
+│     [Forgot Password?]              │
+│     [Need Help?]                    │
+│                                     │
+│  ⚠️ NO "Create Account" link here   │
+└─────────────────────────────────────┘
+```
 
 ### 12.2 Teacher Dashboard
 

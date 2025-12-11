@@ -29,12 +29,15 @@ export class SchoolsController {
 
     /**
      * Create a new school.
-     * Access: Super Admin only
+     * Access: Super Admin (any organization) or Org Admin (within their organization)
      */
     @Post()
-    @Roles(UserRole.SUPER_ADMIN)
-    async create(@Body() createSchoolDto: CreateSchoolDto): Promise<School> {
-        return this.schoolsService.create(createSchoolDto);
+    @Roles(UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN)
+    async create(
+        @Body() createSchoolDto: CreateSchoolDto,
+        @CurrentUser() user: User
+    ): Promise<School> {
+        return this.schoolsService.create(createSchoolDto, user);
     }
 
     /**

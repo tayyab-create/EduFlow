@@ -78,7 +78,7 @@ export class UsersService {
     }
 
     /**
-     * Validate org/school scope for creation.
+     * Validate org/school scope for creation and auto-set organization/school IDs.
      */
     private async validateScope(
         creator: User,
@@ -86,17 +86,28 @@ export class UsersService {
     ): Promise<void> {
         // Super Admin can create for any org/school
         if (creator.role === UserRole.SUPER_ADMIN) {
+            // If creating an Org Admin, organizationId must be provided
+            if (dto.role === UserRole.ORG_ADMIN && !dto.organizationId) {
+                throw new ForbiddenException('organizationId is required when creating Org Admin');
+            }
             return;
         }
 
-        // Org Admin can only create for schools in their org
+        // Org Admin can only create users within their organization
         if (creator.role === UserRole.ORG_ADMIN) {
+            if (!creator.organizationId) {
+                throw new ForbiddenException('Org Admin must be associated with an organization');
+            }
+
+            // Auto-set organizationId for created users
+            dto.organizationId = creator.organizationId;
+
+            // If creating School Admin or school-level staff, schoolId must be in their org
             if (dto.schoolId) {
                 const school = await this.schoolRepository.findOne({
                     where: { id: dto.schoolId },
                 });
-                if (!school || school.organizationId !== creator.schoolId) {
-                    // Note: Org admin's orgId would be stored differently
+                if (!school || school.organizationId !== creator.organizationId) {
                     throw new ForbiddenException('School is not in your organization');
                 }
             }
@@ -105,11 +116,17 @@ export class UsersService {
 
         // School Admin can only create for their school
         if (creator.role === UserRole.SCHOOL_ADMIN) {
+            if (!creator.schoolId) {
+                throw new ForbiddenException('School Admin must be associated with a school');
+            }
+
             if (dto.schoolId && dto.schoolId !== creator.schoolId) {
                 throw new ForbiddenException('Cannot create users for other schools');
             }
-            // Force schoolId to creator's school
+
+            // Auto-set schoolId and organizationId from creator
             dto.schoolId = creator.schoolId;
+            dto.organizationId = creator.organizationId;
         }
     }
 
@@ -157,17 +174,21 @@ export class UsersService {
      * Find all users (filtered by creator's scope).
      */
     async findAll(creator: User): Promise<User[]> {
-        const query = this.userRepository.createQueryBuilder('user');
+        const query = this.userRepository.createQueryBuilder('user')
+            .leftJoinAndSelect('user.school', 'school')
+            .leftJoinAndSelect('user.organization', 'organization');
 
         if (creator.role === UserRole.SUPER_ADMIN) {
-            // See all users
+            // Super Admin sees all users
         } else if (creator.role === UserRole.ORG_ADMIN) {
-            // See users in their organization's schools
-            query
-                .innerJoin('user.school', 'school')
-                .where('school.organizationId = :orgId', { orgId: creator.schoolId });
+            // Org Admin sees users in their organization
+            // This includes users with organizationId or users in schools within the organization
+            query.where(
+                '(user.organizationId = :orgId OR school.organizationId = :orgId)',
+                { orgId: creator.organizationId }
+            );
         } else if (creator.role === UserRole.SCHOOL_ADMIN) {
-            // See users in their school
+            // School Admin sees users in their school only
             query.where('user.schoolId = :schoolId', { schoolId: creator.schoolId });
         } else {
             // Others can only see themselves
@@ -183,7 +204,7 @@ export class UsersService {
     async findOne(id: string): Promise<User> {
         const user = await this.userRepository.findOne({
             where: { id },
-            relations: ['school'],
+            relations: ['school', 'organization'],
         });
 
         if (!user) {

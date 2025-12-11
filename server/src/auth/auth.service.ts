@@ -223,7 +223,7 @@ export class AuthService {
     async getProfile(userId: string): Promise<Partial<User>> {
         const user = await this.userRepository.findOne({
             where: { id: userId },
-            relations: ['school'],
+            relations: ['school', 'organization'],
         });
 
         if (!user) {
@@ -238,11 +238,16 @@ export class AuthService {
         ipAddress?: string,
         userAgent?: string,
     ): Promise<AuthTokens> {
+        // Generate dynamic permissions based on role
+        const permissions = this.generatePermissionsForRole(user.role);
+
         const payload: JwtPayload = {
             sub: user.id,
             email: user.email,
             role: user.role,
+            organizationId: user.organizationId,  // ✅ Added
             schoolId: user.schoolId,
+            permissions,  // ✅ Added
         };
 
         const expiresInSeconds = 900; // 15 minutes
@@ -280,5 +285,90 @@ export class AuthService {
     private sanitizeUser(user: User): Partial<User> {
         const { passwordHash, twoFactorSecret, ...sanitized } = user;
         return sanitized;
+    }
+
+    /**
+     * Generate permissions array based on user role
+     * This provides fine-grained access control beyond role-based checks
+     */
+    private generatePermissionsForRole(role: UserRole): string[] {
+        const permissionMap: Record<UserRole, string[]> = {
+            [UserRole.SUPER_ADMIN]: [
+                'read:*', 'write:*', 'delete:*', // Full access
+                'manage:organizations', 'manage:schools', 'manage:users',
+            ],
+            [UserRole.ORG_ADMIN]: [
+                'read:org-wide', 'write:org-wide',
+                'manage:schools', 'manage:school-admins', 'create:org-admins',
+                'read:students', 'read:staff', 'read:reports',
+            ],
+            [UserRole.SCHOOL_ADMIN]: [
+                'read:school', 'write:school',
+                'manage:staff', 'manage:students', 'manage:classes',
+                'read:attendance', 'write:attendance',
+                'read:grades', 'write:grades',
+                'read:fees', 'write:fees',
+                'read:reports', 'create:reports',
+            ],
+            [UserRole.PRINCIPAL]: [
+                'read:school', 'write:school',
+                'read:students', 'write:students',
+                'read:attendance', 'write:attendance',
+                'read:grades', 'write:grades', 'publish:grades',
+                'read:fees', 'write:fees',
+                'read:reports', 'create:reports',
+            ],
+            [UserRole.VICE_PRINCIPAL]: [
+                'read:school',
+                'read:students', 'write:students',
+                'read:attendance', 'write:attendance',
+                'read:grades', 'write:grades',
+                'read:fees',
+                'read:reports',
+            ],
+            [UserRole.TEACHER]: [
+                'read:own-classes',
+                'read:students:assigned',
+                'write:attendance:assigned',
+                'write:grades:own-subjects',
+                'read:timetable',
+                'send:messages',
+            ],
+            [UserRole.ACCOUNTANT]: [
+                'read:school',
+                'read:students',
+                'read:fees', 'write:fees', 'manage:fees',
+                'read:payments', 'write:payments',
+                'read:financial-reports', 'create:financial-reports',
+            ],
+            [UserRole.HR]: [
+                'read:staff', 'write:staff', 'create:staff',
+                'read:leave-requests', 'approve:leave-requests',
+            ],
+            [UserRole.LIBRARIAN]: [
+                'read:students', 'read:staff',
+                'manage:library',
+            ],
+            [UserRole.RECEPTIONIST]: [
+                'read:students', 'create:students',
+                'read:visitors', 'write:visitors',
+            ],
+            [UserRole.PARENT]: [
+                'read:own-children',
+                'read:attendance:own-children',
+                'read:grades:own-children',
+                'read:fees:own-children', 'pay:fees',
+                'send:messages:teachers',
+            ],
+            [UserRole.STUDENT]: [
+                'read:self',
+                'read:attendance:self',
+                'read:grades:self',
+                'read:timetable:self',
+                'send:messages:teachers',
+            ],
+        };
+
+        return permissionMap[role] || [];
     }
 }

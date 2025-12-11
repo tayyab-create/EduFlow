@@ -3981,14 +3981,31 @@ interface ModalProps {
 
 ### Authentication
 
+**🚫 IMPORTANT: No Public Registration**
+
+EduFlow does NOT support self-registration. There is no public "Sign Up" page or registration API endpoint. All users are created by administrators through the admin dashboard.
+
+**Authentication Flow:**
+1. User navigates to login page (`/login`)
+2. Enters email and password (provided by administrator)
+3. Receives access token and refresh token
+4. Dashboard loads based on user role
+
 ```typescript
-// Login
+// Login (ONLY authentication endpoint)
 POST /api/v1/auth/login
 Request: { email: string, password: string }
-Response: { 
-  accessToken: string, 
-  refreshToken: string, 
-  user: User 
+Response: {
+  accessToken: string,
+  refreshToken: string,
+  user: {
+    id: string,
+    email: string,
+    role: 'super_admin' | 'org_admin' | 'school_admin' | 'teacher' | etc.,
+    organizationId?: string,
+    schoolId?: string,
+    permissions: string[]
+  }
 }
 
 // Refresh Token
@@ -4000,6 +4017,39 @@ Response: { accessToken: string }
 GET /api/v1/auth/me
 Headers: { Authorization: 'Bearer <token>' }
 Response: { user: User }
+
+// Forgot Password (user-initiated)
+POST /api/v1/auth/forgot-password
+Request: { email: string }
+Response: { message: 'Password reset email sent' }
+
+// Reset Password (via email link)
+POST /api/v1/auth/reset-password
+Request: { token: string, newPassword: string }
+Response: { message: 'Password reset successful' }
+```
+
+**User Creation (Admin Only):**
+
+```typescript
+// Create User (requires admin authentication)
+POST /api/v1/users
+Headers: { Authorization: 'Bearer <admin_token>' }
+Request: {
+  email: string,
+  firstName: string,
+  lastName: string,
+  role: 'teacher' | 'principal' | 'accountant' | etc.,
+  schoolId: string,  // Auto-set based on admin's scope
+  temporaryPassword: string,
+  sendWelcomeEmail: boolean
+}
+Response: { user: User }
+
+// Permissions enforced:
+// - Super Admin: Can create any role
+// - Org Admin: Can create School Admins, Org Admins within their org
+// - School Admin: Can create Staff (teachers, accountant, etc.) within their school
 ```
 
 ### Students
