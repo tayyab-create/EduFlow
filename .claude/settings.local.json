@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npm run typeorm:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfix: resolve Quick Demo Login authentication issues\n\n- Fixed API response structure handling in login page to support nested data object\n- Updated database seeder to auto-correct Super Admin email if mismatched\n- Ensured seeder updates Super Admin password to AdminPass123! on mismatch\n- Improved seeder logging to show existing Super Admin details on startup\n\nQuick Demo Login now works correctly for all seeded roles.\nEOF\n)\")"
     ]
   }
 }
