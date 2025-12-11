@@ -14,6 +14,7 @@ import { ClassesModule } from './classes/classes.module';
 import { SubjectsModule } from './subjects/subjects.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { TermsModule } from './terms/terms.module';
+import { GradesModule } from './grades/grades.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -33,6 +34,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     SubjectsModule,
     AttendanceModule,
     TermsModule,
+    GradesModule,
   ],
   controllers: [AppController],
   providers: [
