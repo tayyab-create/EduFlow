@@ -46,9 +46,11 @@ export default function LoginPage() {
             const data = await response.json();
 
             if (response.ok) {
-                localStorage.setItem('accessToken', data.tokens.accessToken);
-                localStorage.setItem('refreshToken', data.tokens.refreshToken);
-                localStorage.setItem('user', JSON.stringify(data.user));
+                const tokens = data.data?.tokens || data.tokens;
+                const user = data.data?.user || data.user;
+                localStorage.setItem('accessToken', tokens.accessToken);
+                localStorage.setItem('refreshToken', tokens.refreshToken);
+                localStorage.setItem('user', JSON.stringify(user));
                 router.push('/dashboard');
             } else {
                 setError(data.message || 'Login failed');
@@ -80,7 +82,8 @@ export default function LoginPage() {
 
             if (loginRes.ok) {
                 const response = await loginRes.json();
-                const { user, tokens } = response.data || response;
+                const tokens = response.data?.tokens || response.tokens;
+                const user = response.data?.user || response.user;
                 localStorage.setItem('accessToken', tokens.accessToken);
                 localStorage.setItem('refreshToken', tokens.refreshToken);
                 localStorage.setItem('user', JSON.stringify(user));
@@ -208,8 +211,8 @@ export default function LoginPage() {
 
                         <div className="pt-3 border-t mt-4">
                             <p className="text-xs text-gray-400 text-center">
-                                Demo accounts are auto-created on first login.<br />
-                                Password: <code className="bg-gray-100 px-1 rounded">{DEFAULT_PASSWORD}</code>
+                                Super Admin is seeded on first run.<br />
+                                Password: <code className="bg-gray-100 px-1 rounded">AdminPass123!</code>
                             </p>
                         </div>
                     </CardContent>
