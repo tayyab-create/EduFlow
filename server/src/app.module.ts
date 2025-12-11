@@ -9,6 +9,11 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { SchoolsModule } from './schools/schools.module';
 import { StudentsModule } from './students/students.module';
 import { UsersModule } from './users/users.module';
+import { AcademicYearsModule } from './academic-years/academic-years.module';
+import { ClassesModule } from './classes/classes.module';
+import { SubjectsModule } from './subjects/subjects.module';
+import { AttendanceModule } from './attendance/attendance.module';
+import { TermsModule } from './terms/terms.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -23,6 +28,11 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     SchoolsModule,
     StudentsModule,
     UsersModule,
+    AcademicYearsModule,
+    ClassesModule,
+    SubjectsModule,
+    AttendanceModule,
+    TermsModule,
   ],
   controllers: [AppController],
   providers: [
