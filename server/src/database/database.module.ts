@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { School, User, RefreshToken } from './entities';
+import { School, User, RefreshToken, Organization } from './entities';
+import { DatabaseSeeder } from './database.seeder';
 
 @Module({
     imports: [
@@ -15,13 +16,15 @@ import { School, User, RefreshToken } from './entities';
                 username: configService.get<string>('DATABASE_USERNAME', 'postgres'),
                 password: configService.get<string>('DATABASE_PASSWORD', 'postgres'),
                 database: configService.get<string>('DATABASE_NAME', 'eduflow'),
-                entities: [School, User, RefreshToken],
+                entities: [Organization, School, User, RefreshToken],
                 synchronize: configService.get<string>('NODE_ENV') === 'development',
                 logging: configService.get<string>('NODE_ENV') === 'development',
                 autoLoadEntities: true,
             }),
         }),
+        TypeOrmModule.forFeature([User]),
     ],
+    providers: [DatabaseSeeder],
     exports: [TypeOrmModule],
 })
 export class DatabaseModule { }

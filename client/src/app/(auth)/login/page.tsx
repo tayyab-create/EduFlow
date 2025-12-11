@@ -9,16 +9,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-// Demo accounts for quick testing
-const DEMO_ACCOUNTS = [
-    { role: 'super_admin', email: 'super@eduflow.pk', label: 'Super Admin', color: 'bg-purple-600', icon: '👑' },
-    { role: 'org_admin', email: 'org@eduflow.pk', label: 'Org Admin', color: 'bg-violet-600', icon: '🏢' },
-    { role: 'school_admin', email: 'school@eduflow.pk', label: 'School Admin', color: 'bg-blue-600', icon: '🏫' },
-    { role: 'principal', email: 'principal@eduflow.pk', label: 'Principal', color: 'bg-orange-600', icon: '👔' },
-    { role: 'teacher', email: 'teacher@eduflow.pk', label: 'Teacher', color: 'bg-green-600', icon: '👨‍🏫' },
-];
+// Seeded Super Admin (created on server startup)
+const SEEDED_SUPER_ADMIN = {
+    email: 'super@eduflow.pk',
+    password: 'AdminPass123!',
+};
 
-const DEFAULT_PASSWORD = 'password123';
+// Demo accounts for quick testing (login only - created by admins)
+const DEMO_ACCOUNTS = [
+    { role: 'super_admin', email: SEEDED_SUPER_ADMIN.email, password: SEEDED_SUPER_ADMIN.password, label: 'Super Admin', color: 'bg-purple-600', icon: '👑', seeded: true },
+    { role: 'org_admin', email: 'org@eduflow.pk', password: 'password123', label: 'Org Admin', color: 'bg-violet-600', icon: '🏢', seeded: false },
+    { role: 'school_admin', email: 'school@eduflow.pk', password: 'password123', label: 'School Admin', color: 'bg-blue-600', icon: '🏫', seeded: false },
+    { role: 'principal', email: 'principal@eduflow.pk', password: 'password123', label: 'Principal', color: 'bg-orange-600', icon: '👔', seeded: false },
+    { role: 'teacher', email: 'teacher@eduflow.pk', password: 'password123', label: 'Teacher', color: 'bg-green-600', icon: '👨‍🏫', seeded: false },
+];
 
 export default function LoginPage() {
     const router = useRouter();
@@ -67,11 +71,11 @@ export default function LoginPage() {
         setError('');
 
         try {
-            // First try to login
+            // Try to login with account-specific password
             const loginRes = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: account.email, password: DEFAULT_PASSWORD }),
+                body: JSON.stringify({ email: account.email, password: account.password }),
             });
 
             if (loginRes.ok) {
@@ -84,38 +88,13 @@ export default function LoginPage() {
                 return;
             }
 
-            // Login failed (user doesn't exist), create the user
-            console.log('Login failed, creating user...');
-
-            const registerBody: Record<string, string> = {
-                email: account.email,
-                password: DEFAULT_PASSWORD,
-                firstName: account.label.split(' ')[0],
-                lastName: 'Demo',
-                role: account.role,
-            };
-
-            // School admin gets a demo school
-            if (account.role === 'school_admin') {
-                registerBody.schoolName = 'Demo School';
-            }
-
-            const registerRes = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(registerBody),
-            });
-
-            const response = await registerRes.json();
-
-            if (registerRes.ok) {
-                const { user, tokens } = response.data || response;
-                localStorage.setItem('accessToken', tokens.accessToken);
-                localStorage.setItem('refreshToken', tokens.refreshToken);
-                localStorage.setItem('user', JSON.stringify(user));
-                router.push('/dashboard');
+            // Login failed
+            if (account.seeded) {
+                // Super Admin is seeded - should always exist
+                setError('Login failed. Check server is running.');
             } else {
-                setError(response.message || 'Failed to create demo user');
+                // Other accounts need to be created by Super Admin
+                setError(`${account.label} account not created. Login as Super Admin first to create users.`);
             }
         } catch (err) {
             console.error('Demo login error:', err);

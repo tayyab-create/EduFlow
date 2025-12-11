@@ -18,6 +18,7 @@ const navItems = [
     { href: '/students', label: 'Students', icon: '🎓', roles: ['super_admin', 'org_admin', 'school_admin', 'principal', 'teacher'] },
     { href: '/schools', label: 'Schools', icon: '🏫', roles: ['super_admin', 'org_admin', 'school_admin'] },
     { href: '/organizations', label: 'Organizations', icon: '🏢', roles: ['super_admin', 'org_admin'] },
+    { href: '/users', label: 'Users', icon: '👥', roles: ['super_admin', 'org_admin', 'school_admin'] },
 ];
 
 const roleColors: Record<string, string> = {
@@ -88,8 +89,8 @@ export default function Sidebar() {
                             key={item.href}
                             href={item.href}
                             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${isActive
-                                    ? 'bg-indigo-50 text-indigo-700 font-medium'
-                                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                ? 'bg-indigo-50 text-indigo-700 font-medium'
+                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                                 }`}
                         >
                             <span className="text-lg">{item.icon}</span>
