@@ -1,8 +1,30 @@
 # MVP Backend Modules Changelog
 
-## 2025-12-12 | 12:17 PM PKT
+## 2025-12-12 | 12:25 PM PKT
 
 **Platform:** Windows 11 | NestJS 11 | TypeORM 0.3.28 | PostgreSQL | TypeScript 5.7.3
+
+**Branch:** `feature/mvp-backend-modules`
+
+---
+
+## Password Reset Flow (Latest)
+
+**New Endpoints:**
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| POST | `/api/v1/auth/forgot-password` | Public | Request password reset token |
+| POST | `/api/v1/auth/reset-password` | Public | Reset password with token |
+
+**New Entity:** `PasswordResetToken`
+- Hashed token storage (bcrypt)
+- 1-hour token expiration
+- Single-use tokens with usage tracking
+
+**Security Features:**
+- Email enumeration protection (returns same message regardless of email existence)
+- Invalidates all refresh tokens on password reset
+- Strong password validation (8+ chars, uppercase, lowercase, number)
 
 **Branch:** `feature/mvp-backend-modules`
 
