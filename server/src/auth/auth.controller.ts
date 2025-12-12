@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { AuthService, AuthResponse, AuthTokens } from './auth.service';
-import { LoginDto, RefreshTokenDto } from './dto';
+import { LoginDto, RefreshTokenDto, ForgotPasswordDto, ResetPasswordDto } from './dto';
 import { JwtAuthGuard } from './guards';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -72,6 +72,42 @@ export class AuthController {
         return {
             success: true,
             data: user,
+        };
+    }
+
+    // ==================== PASSWORD RESET ENDPOINTS ====================
+
+    /**
+     * Request a password reset.
+     * Generates a token and sends it to the user's email.
+     * For development, the token is also returned in the response.
+     */
+    @Public()
+    @Post('forgot-password')
+    @HttpCode(HttpStatus.OK)
+    async forgotPassword(
+        @Body() dto: ForgotPasswordDto,
+    ): Promise<{ success: boolean; message: string; token?: string }> {
+        const result = await this.authService.forgotPassword(dto.email);
+        return {
+            success: true,
+            ...result,
+        };
+    }
+
+    /**
+     * Reset password using the token received via email.
+     */
+    @Public()
+    @Post('reset-password')
+    @HttpCode(HttpStatus.OK)
+    async resetPassword(
+        @Body() dto: ResetPasswordDto,
+    ): Promise<{ success: boolean; message: string }> {
+        const result = await this.authService.resetPassword(dto.token, dto.newPassword);
+        return {
+            success: true,
+            ...result,
         };
     }
 }

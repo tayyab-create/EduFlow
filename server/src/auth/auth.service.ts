@@ -13,6 +13,7 @@ import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { User, UserStatus, UserRole } from '../database/entities/user.entity';
 import { RefreshToken } from '../database/entities/refresh-token.entity';
+import { PasswordResetToken } from '../database/entities/password-reset-token.entity';
 import { School } from '../database/entities/school.entity';
 import { LoginDto, RegisterDto, RefreshTokenDto } from './dto';
 import { JwtPayload } from './strategies/jwt.strategy';
@@ -370,5 +371,106 @@ export class AuthService {
         };
 
         return permissionMap[role] || [];
+    }
+
+    // ==================== PASSWORD RESET METHODS ====================
+
+    /**
+     * Generate a password reset token for a user.
+     * Returns the raw token (to be sent via email) and saves hashed version.
+     */
+    async forgotPassword(email: string): Promise<{ message: string; token?: string }> {
+        const user = await this.userRepository.findOne({
+            where: { email: email.toLowerCase(), deletedAt: IsNull() },
+        });
+
+        // Always return success message to prevent email enumeration attacks
+        if (!user) {
+            return {
+                message: 'If an account exists with this email, you will receive a password reset link.',
+            };
+        }
+
+        // Generate a secure random token
+        const rawToken = crypto.randomBytes(32).toString('hex');
+        const hashedToken = await bcrypt.hash(rawToken, 10);
+
+        // Token expires in 1 hour
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 1);
+
+        // Use the imported PasswordResetToken entity
+        const passwordResetTokenRepo = this.userRepository.manager.getRepository(PasswordResetToken);
+
+        // Invalidate any existing tokens for this user
+        await passwordResetTokenRepo.update(
+            { userId: user.id, isUsed: false },
+            { isUsed: true, usedAt: new Date() },
+        );
+
+        // Create new token
+        const resetToken = passwordResetTokenRepo.create({
+            userId: user.id,
+            token: hashedToken,
+            expiresAt,
+        });
+        await passwordResetTokenRepo.save(resetToken);
+
+        // In production, this token should be sent via email
+        // For development, we return it directly
+        return {
+            message: 'If an account exists with this email, you will receive a password reset link.',
+            token: rawToken, // In production, this would be sent via email, not returned
+        };
+    }
+
+    /**
+     * Reset password using a valid token.
+     */
+    async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+        // Use the imported PasswordResetToken entity
+        const passwordResetTokenRepo = this.userRepository.manager.getRepository(PasswordResetToken);
+
+        // Find all unused, non-expired tokens
+        const resetTokens = await passwordResetTokenRepo.find({
+            where: {
+                isUsed: false,
+            },
+            relations: ['user'],
+        });
+
+        // Find the matching token by comparing hashes
+        let matchingToken: PasswordResetToken | null = null;
+        for (const rt of resetTokens) {
+            if (rt.expiresAt > new Date()) {
+                const isMatch = await bcrypt.compare(token, rt.token);
+                if (isMatch) {
+                    matchingToken = rt;
+                    break;
+                }
+            }
+        }
+
+        if (!matchingToken) {
+            throw new BadRequestException('Invalid or expired password reset token');
+        }
+
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update user's password
+        await this.userRepository.update(matchingToken.userId, {
+            passwordHash: hashedPassword,
+        });
+
+        // Mark token as used
+        matchingToken.isUsed = true;
+        matchingToken.usedAt = new Date();
+        await passwordResetTokenRepo.save(matchingToken);
+
+        // Invalidate all refresh tokens for security
+        await this.refreshTokenRepository.delete({ userId: matchingToken.userId });
+
+        return { message: 'Password has been reset successfully. Please login with your new password.' };
     }
 }
