@@ -16,6 +16,10 @@ import { AttendanceModule } from './attendance/attendance.module';
 import { TermsModule } from './terms/terms.module';
 import { GradesModule } from './grades/grades.module';
 import { FeesModule } from './fees/fees.module';
+import { TimetableModule } from './timetable/timetable.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { MessagingModule } from './messaging/messaging.module';
+import { ReportsModule } from './reports/reports.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -37,6 +41,10 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     TermsModule,
     GradesModule,
     FeesModule,
+    TimetableModule,
+    NotificationsModule,
+    MessagingModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [
