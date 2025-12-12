@@ -973,10 +973,18 @@ See the "Decoded JWT Payload" section in the Login card.</pre>`;
         // Check API connection on load
         window.addEventListener('load', async () => {
             try {
-                const response = await fetch(`${API_URL}/health`, { method: 'GET' });
-                if (!response.ok) throw new Error('API not responding');
+                // Test with auth/login endpoint instead of /health
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: '', password: '' })
+                });
+                // Even if login fails, if we get a response, API is up
+                if (response.status === 0) throw new Error('API not responding');
             } catch (error) {
-                alert('⚠️ Warning: Cannot connect to API at ' + API_URL + '\n\nPlease ensure the backend server is running on port 3001.');
+                if (error.message === 'Failed to fetch' || error.message === 'API not responding') {
+                    alert('⚠️ Warning: Cannot connect to API at ' + API_URL + '\n\nPlease ensure the backend server is running on port 3001.');
+                }
             }
         });
     </script>

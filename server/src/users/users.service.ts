@@ -164,6 +164,7 @@ export class UsersService {
             phone: dto.phone,
             role: dto.role,
             status: UserStatus.ACTIVE,
+            organizationId: dto.organizationId,
             schoolId: dto.schoolId,
         });
 
